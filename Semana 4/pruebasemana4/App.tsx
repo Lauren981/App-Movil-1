@@ -1,13 +1,14 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { ProveedorJuego, JuegoContext } from './contexto/ContextoJuego';
 import BotonIniciar from './componentes/BotonIniciar';
 import Carta from './componentes/Carta';
-
+import ListadoPartidas from './componentes/ListadoPartidas';
 
 class App extends React.Component {
   static contextType = JuegoContext;
   declare context: any;
+
   renderTablero() {
     const { cartas, voltearCarta } = this.context;
     return (
@@ -30,7 +31,13 @@ class App extends React.Component {
         <View style={styles.container}>
           <BotonIniciar />
           <JuegoContext.Consumer>
-            {() => this.renderTablero()}
+            {({ mensaje }) => (
+              <>
+                {this.renderTablero()}
+                <Text style={styles.mensaje}>{mensaje}</Text>
+                <ListadoPartidas />
+              </>
+            )}
           </JuegoContext.Consumer>
         </View>
       </ProveedorJuego>
@@ -51,6 +58,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 10,
+  },
+  mensaje: {
+    fontSize: 18,
+    margin: 10,
+    color: '#333',
+    fontWeight: 'bold',
   },
 });
 

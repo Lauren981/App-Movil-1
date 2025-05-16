@@ -6,76 +6,90 @@ export interface Carta {
   emparejada: boolean;
 }
 
-interface JuegoContextType {
-  cartas: Carta[];
-  cartasVolteadas: number[];
-  iniciarJuego: () => void;
-  voltearCarta: (indice: number) => void;
-  verificarPareja: () => void;
-  subscribe: (callback: () => void) => void;
-  unsubscribe: (callback: () => void) => void;
-  partidas: { resultado: string }[]; // Ajusta el tipo según la estructura real de 'partida'
+interface Partida {
+  resultado: string;
 }
 
-// Clase singleton para manejar el estado
+interface JuegoContextType {
+  cartas: Carta[];
+  partidas: Partida[];
+  mensaje: string;
+  iniciarJuego: () => void;
+  voltearCarta: (indice: number) => void;
+}
+
+const valoresBase = ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D'];
+
+function mezclar(array: any[]) {
+  return array
+    .map(value => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ value }) => value);
+}
+
 class JuegoManager {
   cartas: Carta[] = [];
+  partidas: Partida[] = [];
+  mensaje: string = '';
   cartasVolteadas: number[] = [];
-  listeners: Array<() => void> = [];
+  juegoActivo: boolean = false;
+  actualizar: (() => void)[] = [];
 
   iniciarJuego = () => {
-    const valores = ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D'];
-    const mezcladas = valores
-      .sort(() => Math.random() - 0.5)
-      .map(valor => ({ valor, estaVolteada: false, emparejada: false }));
-    this.cartas = mezcladas;
+    this.cartas = mezclar(valoresBase).map(valor => ({
+      valor,
+      estaVolteada: false,
+      emparejada: false,
+    }));
     this.cartasVolteadas = [];
-    this.notify();
+    this.mensaje = '';
+    this.juegoActivo = true;
+    this.notificar();
   };
 
   voltearCarta = (indice: number) => {
-    if (
-      this.cartasVolteadas.length < 2 &&
-      !this.cartas[indice].emparejada &&
-      !this.cartas[indice].estaVolteada
-    ) {
-      this.cartas[indice].estaVolteada = true;
-      this.cartasVolteadas.push(indice);
-      this.notify();
+    if (!this.juegoActivo) return;
+    if (this.cartas[indice].estaVolteada || this.cartas[indice].emparejada) return;
+    if (this.cartasVolteadas.length === 2) return;
+
+    this.cartas[indice].estaVolteada = true;
+    this.cartasVolteadas.push(indice);
+
+    if (this.cartasVolteadas.length === 2) {
+      setTimeout(() => this.verificarPareja(), 800);
     }
+    this.notificar();
   };
 
   verificarPareja = () => {
-    if (this.cartasVolteadas.length === 2) {
-      const [i1, i2] = this.cartasVolteadas;
-      if (this.cartas[i1].valor === this.cartas[i2].valor) {
-        this.cartas[i1].emparejada = true;
-        this.cartas[i2].emparejada = true;
-        this.notify();
-      } else {
-        setTimeout(() => {
-          this.cartas[i1].estaVolteada = false;
-          this.cartas[i2].estaVolteada = false;
-          this.notify();
-        }, 800);
-      }
-      setTimeout(() => {
-        this.cartasVolteadas = [];
-        this.notify();
-      }, 800);
+    const [i, j] = this.cartasVolteadas;
+    if (this.cartas[i].valor === this.cartas[j].valor) {
+      this.cartas[i].emparejada = true;
+      this.cartas[j].emparejada = true;
+      this.mensaje = '¡Ganaste! Encontraste el par.';
+      this.partidas.push({ resultado: 'Ganó' });
+      this.juegoActivo = false;
+    } else {
+      this.cartas[i].estaVolteada = false;
+      this.cartas[j].estaVolteada = false;
+      this.mensaje = 'No son iguales. Fin del juego.';
+      this.partidas.push({ resultado: 'Perdió' });
+      this.juegoActivo = false;
     }
+    this.cartasVolteadas = [];
+    this.notificar();
   };
 
-  subscribe = (callback: () => void) => {
-    this.listeners.push(callback);
+  notificar = () => {
+    this.actualizar.forEach(fn => fn());
   };
 
-  unsubscribe = (callback: () => void) => {
-    this.listeners = this.listeners.filter(fn => fn !== callback);
+  subscribe = (fn: () => void) => {
+    this.actualizar.push(fn);
   };
 
-  notify = () => {
-    this.listeners.forEach(fn => fn());
+  unsubscribe = (fn: () => void) => {
+    this.actualizar = this.actualizar.filter(f => f !== fn);
   };
 }
 
@@ -83,39 +97,31 @@ const juegoManager = new JuegoManager();
 
 export const JuegoContext = React.createContext<JuegoContextType>({
   get cartas() { return juegoManager.cartas; },
-  get cartasVolteadas() { return juegoManager.cartasVolteadas; },
+  get partidas() { return juegoManager.partidas; },
+  get mensaje() { return juegoManager.mensaje; },
   iniciarJuego: juegoManager.iniciarJuego,
   voltearCarta: juegoManager.voltearCarta,
-  verificarPareja: juegoManager.verificarPareja,
-  subscribe: juegoManager.subscribe,
-  unsubscribe: juegoManager.unsubscribe,
-  partidas: [], // Ajusta el valor inicial según sea necesario
 });
 
 export class ProveedorJuego extends React.Component<{ children: React.ReactNode }, { version: number }> {
   state = { version: 0 };
+  actualizar = () => this.setState(({ version }) => ({ version: version + 1 }));
 
   componentDidMount() {
-    juegoManager.subscribe(this.handleChange);
+    juegoManager.subscribe(this.actualizar);
   }
   componentWillUnmount() {
-    juegoManager.unsubscribe(this.handleChange);
+    juegoManager.unsubscribe(this.actualizar);
   }
-  handleChange = () => {
-    this.setState(({ version }) => ({ version: version + 1 }));
-  };
 
   render() {
     return (
       <JuegoContext.Provider value={{
         cartas: juegoManager.cartas,
-        cartasVolteadas: juegoManager.cartasVolteadas,
+        partidas: juegoManager.partidas,
+        mensaje: juegoManager.mensaje,
         iniciarJuego: juegoManager.iniciarJuego,
         voltearCarta: juegoManager.voltearCarta,
-        verificarPareja: juegoManager.verificarPareja,
-        subscribe: juegoManager.subscribe,
-        unsubscribe: juegoManager.unsubscribe,
-        partidas: [], 
       }}>
         {this.props.children}
       </JuegoContext.Provider>
