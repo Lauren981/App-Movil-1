@@ -3,9 +3,9 @@ import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useAppContext } from '../context/AppContext'; 
 
 const Transferencias = () => { 
-const appContext = useAppContext();
-const balance = appContext?.balance ?? 0;
-const transfer = appContext?.transfer ?? (() => false);
+const appContext = useAppContext(); 
+const balance = appContext?.balance ?? 0; 
+const transfer = appContext?.transfer;
 const [accountNumber, setAccountNumber] = useState(''); 
 const [recipient, setRecipient] = useState(''); 
 const [amount, setAmount] = useState(''); 
@@ -18,7 +18,7 @@ Alert.alert("Error", "Por favor, ingrese datos válidos. ");
 return; 
 } 
 
-if (transfer(transferAmount, recipient)) { 
+if (transfer && transfer(transferAmount, recipient)) { 
 setAccountNumber(''); 
 setRecipient(''); 
 setAmount(''); 
@@ -57,6 +57,7 @@ keyboardType="numeric"
 </View> 
 ); 
 }; 
+
 
 const styles = StyleSheet.create({ 
 container: { flex: 1, padding: 20, alignItems: 'center' }, 
