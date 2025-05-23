@@ -10,7 +10,7 @@ const deposit = appContext?.deposit ?? (() => {});
 
 return ( 
 <View style={styles.container}> 
-<Text style={styles.title}>Bienvenido a MiBanco</Text> 
+<Text style={styles.title}>Bienvenido a Mi Banco</Text> 
 <Text style={styles.balance}>Saldo Actual: L.{balance}</Text> 
 <Button title="Depositar L.500" onPress={deposit} /> 
 <Text style={styles.subtitle}>Historial de Transacciones</Text> 
