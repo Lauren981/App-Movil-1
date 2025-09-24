@@ -1,4 +1,5 @@
 import React from 'react'
+import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import FormularioArticulo from '../screens/FormularioArticulo';
 import ListaArticulos from '../screens/ListaArticulos';
@@ -35,7 +36,7 @@ export default function BottomTabs() {
                 component={FormularioArticulo}
                 options={{
                     title: 'Agregar Producto',
-                    tabBarIcon: () => '➕',
+                    tabBarIcon: () => <Text>➕</Text>,
                 }}
             />
             <Tabs.Screen 
@@ -43,7 +44,7 @@ export default function BottomTabs() {
                 component={ListaArticulos}
                 options={{
                     title: 'Mis Productos',
-                    tabBarIcon: () => '📋',
+                    tabBarIcon: () => <Text>📋</Text>,
                 }}
             />
         </Tabs.Navigator>
